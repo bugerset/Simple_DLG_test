@@ -106,7 +106,7 @@ Key arguments (from utils/parser.py):
 		•	--device in {auto,cpu,cuda,mps}
 
 	•	Training parameter
-		•	--dyn-alpha (FedDyn alpha, default 0.1)
+		•	--grad-amp (default 1e2)
 
 	•	Dataset
 		•   --data-set (default cifar10, choices=[cifar10, mnist])
@@ -127,6 +127,54 @@ Key arguments (from utils/parser.py):
 		•	--min-size minimum samples per client in non-IID (default 10)
 		•	--print-labels / --no-print-labels
 ```
+
+## Implementation Details (Math ↔ Code)
+
+DLG reconstructs `(x, y)` by solving a gradient matching problem:
+
+Goal (gradient matching):$min_{x’, y’}  J(x’, y’) = Σ_l || g_l(x’, y’) - g_l^{client} ||_2^2 where  g_l(x’, y’) = ∂L(f_θ(x’), y’) / ∂θ_l$
+
+In this repo, the mapping is:
+
+- **Client gradient extraction**: `fl/fedavg.py`
+  - returns `{name: grad}` for each parameter (batch-size = `--batch-size`)
+
+- **Dummy initialization**: `attack/noise.py`
+  - `dummy_x ∼ U(0,1)` (pixel space), `dummy_y ∼ N(0,1)` (label logits)
+
+- **DLG optimization loop**: `attack/generator.py`
+  - **LBFGS** optimizes `[dummy_x, dummy_y]`
+  - `dummy_y → softmax(dummy_y)` produces differentiable soft labels
+  - `TF.normalize(dummy_x, mean, std)` matches the client-side preprocessing
+
+Key code (simplified):
+
+```python
+# attack/generator.py
+optimizer = torch.optim.LBFGS([dummy_x, dummy_y], lr=1.0)
+
+def closure():
+    optimizer.zero_grad()
+
+    x_hat = TF.normalize(dummy_x.clamp(0, 1), mean_c, std_c)
+    pred = model(x_hat)
+
+    soft_y = torch.softmax(dummy_y, dim=-1)
+    loss = soft_ce(pred, soft_y)
+
+    # g_dummy = ∂loss/∂θ
+    g_tuple = torch.autograd.grad(loss, model.parameters(), create_graph=True)
+
+    # J = Σ ||g_dummy - g_client||²
+    J = 0.0
+    for (name, _), g in zip(model.named_parameters(), g_tuple):
+        J += (g - g_client[name]).pow(2).mean()
+
+    J.backward()
+    return J
+
+optimizer.step(closure)
+
 
 ## Expected Output
 
