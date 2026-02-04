@@ -5,7 +5,6 @@ Given a client’s shared gradients (typically **batch size = 1**), this code re
 
 > ⚠️ This repo is for **research/educational** purposes only.
 
----
 
 ## Overview
 
@@ -16,7 +15,6 @@ DLG assumes an attacker (e.g., server) can access:
 The attacker then optimizes dummy variables `(x', y')` such that:
 `∇θ L(fθ(x'), y') ≈ ∇θ L(fθ(x), y)`.
 
----
 
 ## Threat Model (Assumptions)
 
@@ -24,7 +22,6 @@ The attacker then optimizes dummy variables `(x', y')` such that:
 - The attacker can observe the **client gradients** from **one mini-batch** (default: **batch size = 1**).
 - The attacker does **not** have access to the client’s raw data or labels.
 
----
 
 ## Method (DLG)
 
@@ -35,7 +32,6 @@ We optimize:
 by minimizing the gradient matching objective:
 `Gradient_Distance = Σ ||g_dummy - g_client||²`.
 
----
 
 ## Recommended Folder Structure
 
@@ -109,23 +105,18 @@ Key arguments (from utils/parser.py):
 		•	--seed (default: 845)
 		•	--device in {auto,cpu,cuda,mps}
 
-	•	Training method
+	•	Train parameter
 		•	--dyn-alpha (FedDyn alpha, default 0.1)
 
 	•	Dataset
 		•   --data-set (default cifar10, choices=[cifar10, mnist])
 		•	--data-root (default ./data)
-		•	--augment / --no-augment
-		•	--normalize / --no-normalize
-		•	--test-batch-size (default 128)
 
-	•	Federated learning config
+	•	Fed learning & Attack iter
 		•	--num-clients (default 10)
 		•	--client-frac fraction of clients sampled per round (default 0.25)
-		•	--local-epochs (default 1)
-		•	--batch-size (default 100)
-		•	--lr learning rate (default 1e-2)
-		•	--rounds communication rounds (default 10)
+		•	--batch-size (default 1)
+		•	--attack-iter (default=100)
 
 	•	Data partitioning
 		•	--partition in {iid,niid}
@@ -135,81 +126,11 @@ Key arguments (from utils/parser.py):
 		  		└──	α = 0.8 ~ 1.0: closer to IID
 		•	--min-size minimum samples per client in non-IID (default 10)
 		•	--print-labels / --no-print-labels
-
-	•	Learning rate Scheduler (ReduceOnPlateau)
-		•	--lr-factor (learning rate * factor, default 0.5)
-		•	--lr-patience (default 5)
-		•	--min-lr (deafult 1e-6)
-		•	--lr-threshold (default 1e-4)
-		•	--lr-cooldown (default 0)
 ```
-## FedDyn Implementation Notes
-
-### 1) Client-side Update (fl/feddyn.py)
-
-Each client minimizes a dynamically regularized objective to reduce client drift from the global optimum.
-
-**Local objective (per client):**
-
-$$𝝷_k^t = L_{total}(𝝷) - {\langle g_k^{t-1}, 𝝷\rangle} + \frac{\alpha}{2} * |\theta-\theta^{t-1}\|^2$$
-
-- $L_{\text{task}}$: standard cross-entropy loss on local batch $b$.
-- $-\langle 𝝷_k^{t}, \theta \rangle$: linear correction term using the client-specific state $h_k^t$.
-- $\frac{\alpha}{2}\|\theta-\theta^{t}\|^2$: proximal term keeping the local model close to the global model $\theta^t$.
-
-**Optimizer:** SGD with `momentum=0.9`, `weight_decay=5e-4`.
-
-**Client state update (after local training):**
-
-$$
-g_k^{t} = g_k^{t-1} - \alpha(\theta_k^{t}-\theta^{t-1})
-$$
-
-where $\theta_k^{t+1}$ is the client model after local training and $\theta^{t}$ is the global model received at the start of round $t$.
-
-⸻
-
-2) Server-side Aggregation (fl/server.py)
-
-The server maintains a global correction state $h$ and updates the global model using a corrected averaging scheme.
-
-(a) Server state $h$ update:
-$$h^{t} = h^{t-1} - \alpha \cdot \frac{1}{m}\sum_{k\in P_i}(\theta_k^{t}-\theta^{t-1})$$<br>
-	•	$m$: Number of all clients<br>
-	•	The server state $$h$$ accumulates the average drift $$(\theta_k^{t}-\theta^{t-1})$$ across every participating clients.
-
-(b) Global model update
-For learnable parameters (weights/bias):
-
-$$\\overline{\theta^{t}} = \frac{1}{P}\sum_{k\in P_i}\theta_k^{t}$$
-
-$$\theta^t = \\overline{\theta^{t}} - \frac{1}{\alpha}h^{t}$$
-
-For BatchNorm buffers (e.g., running_mean, running_var, num_batches_tracked):
-
-$$\theta^{t} = \\overline{\theta^{t}}$$
-
-BatchNorm buffers are aggregated by simple averaging (no FedDyn correction).
 
 ## Expected Output
 
-Each round prints evaluation results like:
-```bash
-=== Evaluate global model 1 Round ===
-[01] acc=XX.XX%, loss=Y.YYYYYY
-```
-
-With data_set="cifar10", num_clients=100, client_frac=0.25, local_epochs=5, batch_size=50, lr=1e-2, rounds=200, partition="niid", alpha=0.4, lr_patience=10, min_lr=1e-5:
-<br>83 Round ACC=60.65%, loss=1.122256
-<br>96 Round ACC=63.43%, loss=1.039685
-<br>106 Round ACC=65.97%, loss=1.004173
-<br>117 Round ACC=67.29%, loss=0.951618
-<br>134 Round ACC=69.24%, loss=0.933948
-<br>145 Round ACC=70.63%, loss=0.875592
-<br>159 Round ACC=72.41%, loss=0.816083
-<br>167 Round ACC=73.91%, loss=0.774350
-<br>189 Round ACC=74.31%, loss=0.742489
-<br>200 Round ACC=75.38%, loss=0.723625
+(*wit
 
 
 
