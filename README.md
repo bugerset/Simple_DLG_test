@@ -54,25 +54,32 @@ Code reference:
 
 ## Implementation Details (Math ↔ Code)
 
-DLG reconstructs `(x, y)` by solving a gradient matching problem:
+DLG reconstructs `(x, y)` by solving a **gradient matching** problem.
 
-Goal (gradient matching):
+### Goal (gradient matching)
 
-$$min_{x’, y’}  J(x’, y’) = Σ_l || g_l(x’, y’) - g_l^{client} ||_2^2  where  g_l(x’, y’) = ∂L(f_θ(x’), y’) / ∂θ_l$$
+\[
+\min_{x', y'} \; J(x', y') = \sum_l \left\| g_l(x', y') - g_l^{client} \right\|_2^2,
+\quad
+g_l(x', y') = \frac{\partial L(f_\theta(x'), y')}{\partial \theta_l}
+\]
 
-In this repo, the mapping is:
+**Intuition:** we update `dummy_x` (and `dummy_y`) to **minimize the gradient difference** between the client’s gradient and the dummy gradient.  
+In other words, `dummy_x` is optimized using **J**, the discrepancy between `g_dummy` and `g_client`, so that the dummy sample produces gradients indistinguishable from the client’s.
 
-- **Client gradient extraction**: `fl/fedavg.py`
-  - returns `{name: grad}` for each parameter (batch-size = `--batch-size`)
+### Math ↔ Code mapping
 
-- **Dummy initialization**: `attack/noise.py`
-  - returns `dummy_x ∼ U(0,1)` (pixel space), `dummy_y ∼ N(0,1)` (label logits) with 
+- **Client gradient extraction**: `fl/fedavg.py`  
+  - returns `{name: grad}` for each parameter (batch size = `--batch-size`)
 
-- **DLG optimization loop**: `attack/generator.py`
-  - **LBFGS** optimizes `[dummy_x, dummy_y]`
-  - `dummy_y → softmax(dummy_y)` produces differentiable soft labels
-  - `TF.normalize(dummy_x, mean, std)` matches the client-side preprocessing
+- **Dummy initialization**: `attack/noise.py`  
+  - returns `dummy_x ∼ U(0,1)` (pixel space), `dummy_y ∼ N(0,1)` (label logits)
 
+- **DLG optimization loop**: `attack/generator.py`  
+  - **LBFGS** optimizes `[dummy_x, dummy_y]` *(model weights are fixed)*  
+  - `dummy_y → softmax(dummy_y)` yields differentiable soft labels  
+  - `TF.normalize(dummy_x, mean, std)` matches the client-side preprocessing  
+  - `J = Σ ||g_dummy - g_client||²` is computed and backpropagated to update `dummy_x, dummy_y`
 Key code (simplified):
 
 ```python
@@ -82,8 +89,11 @@ optimizer = torch.optim.LBFGS([dummy_x, dummy_y], lr=1, max_iter=20, history_siz
 def closure():
 	with torch.no_grad():
 		dummy_x.clamp_(0, 1)
+
 	optimizer.zero_grad()
+
 	x_hat = TF.normalize(dummy_x, mean_c, std_c)
+
 	dummy_pred = global_model(x_hat)
 	dummy_loss = F.cross_entropy(dummy_pred, torch.softmax(dummy_y, dim=-1))
 	dummy_grads_tuple = torch.autograd.grad(dummy_loss, global_model.parameters(), create_graph=True)
