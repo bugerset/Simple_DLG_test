@@ -32,6 +32,77 @@ We optimize:
 by minimizing the gradient matching objective:
 `Gradient_Distance = Σ ||g_dummy - g_client||²`.
 
+## Normalization (Mean / Std)
+
+To match the client-side preprocessing, we use dataset-specific normalization statistics:
+
+- **MNIST**
+  - mean = (0.1307,)
+  - std  = (0.3081,)
+
+- **CIFAR-10**
+  - mean = (0.4914, 0.4822, 0.4465)
+  - std  = (0.2470, 0.2435, 0.2616)
+
+During the attack, `dummy_x` is maintained in pixel space **[0, 1]** and normalized **only before** the forward pass:
+`x_hat = Normalize(dummy_x, mean, std)`.
+
+Code reference:
+- `attack/noise.py`: provides `mean/std` for dummy initialization
+- `attack/generator.py`: applies `TF.normalize(dummy_x, mean, std)` before feeding into the model
+- `utils/plotting.py`: denormalizes the original input for visualization
+
+## Implementation Details (Math ↔ Code)
+
+DLG reconstructs `(x, y)` by solving a gradient matching problem:
+
+Goal (gradient matching):
+
+$$min_{x’, y’}  J(x’, y’) = Σ_l || g_l(x’, y’) - g_l^{client} ||_2^2 where  g_l(x’, y’) = ∂L(f_θ(x’), y’) / ∂θ_l$$
+
+In this repo, the mapping is:
+
+- **Client gradient extraction**: `fl/fedavg.py`
+  - returns `{name: grad}` for each parameter (batch-size = `--batch-size`)
+
+- **Dummy initialization**: `attack/noise.py`
+  - returns `dummy_x ∼ U(0,1)` (pixel space), `dummy_y ∼ N(0,1)` (label logits) with 
+
+- **DLG optimization loop**: `attack/generator.py`
+  - **LBFGS** optimizes `[dummy_x, dummy_y]`
+  - `dummy_y → softmax(dummy_y)` produces differentiable soft labels
+  - `TF.normalize(dummy_x, mean, std)` matches the client-side preprocessing
+
+Key code (simplified):
+
+```python
+# attack/generator.py
+optimizer = torch.optim.LBFGS([dummy_x, dummy_y], lr=1, max_iter=20, history_size=100, line_search_fn='strong_wolfe')
+
+def closure():
+	with torch.no_grad():
+		dummy_x.clamp_(0, 1)
+	optimizer.zero_grad()
+	x_hat = TF.normalize(dummy_x, mean_c, std_c)
+	dummy_pred = global_model(x_hat)
+	dummy_loss = F.cross_entropy(dummy_pred, torch.softmax(dummy_y, dim=-1))
+	dummy_grads_tuple = torch.autograd.grad(dummy_loss, global_model.parameters(), create_graph=True)
+	dummy_grads = {name: g for (name, _), g in zip(global_model.named_parameters(), dummy_grads_tuple)}
+
+	grad_diff = 0
+
+	for name in c_grads.keys():
+		diff = (dummy_grads[name] - c_grads[name]).pow(2).sum()
+		grad_diff += diff
+
+	grad_diff *= grad_amp
+	
+	grad_diff.backward()
+
+	return grad_diff
+
+loss_val = optimizer.step(closure)
+```
 
 ## Recommended Folder Structure
 
@@ -127,53 +198,6 @@ Key arguments (from utils/parser.py):
 		•	--min-size minimum samples per client in non-IID (default 10)
 		•	--print-labels / --no-print-labels
 ```
-
-## Implementation Details (Math ↔ Code)
-
-DLG reconstructs `(x, y)` by solving a gradient matching problem:
-
-Goal (gradient matching):$min_{x’, y’}  J(x’, y’) = Σ_l || g_l(x’, y’) - g_l^{client} ||_2^2 where  g_l(x’, y’) = ∂L(f_θ(x’), y’) / ∂θ_l$
-
-In this repo, the mapping is:
-
-- **Client gradient extraction**: `fl/fedavg.py`
-  - returns `{name: grad}` for each parameter (batch-size = `--batch-size`)
-
-- **Dummy initialization**: `attack/noise.py`
-  - `dummy_x ∼ U(0,1)` (pixel space), `dummy_y ∼ N(0,1)` (label logits)
-
-- **DLG optimization loop**: `attack/generator.py`
-  - **LBFGS** optimizes `[dummy_x, dummy_y]`
-  - `dummy_y → softmax(dummy_y)` produces differentiable soft labels
-  - `TF.normalize(dummy_x, mean, std)` matches the client-side preprocessing
-
-Key code (simplified):
-
-```python
-# attack/generator.py
-optimizer = torch.optim.LBFGS([dummy_x, dummy_y], lr=1.0)
-
-def closure():
-    optimizer.zero_grad()
-
-    x_hat = TF.normalize(dummy_x.clamp(0, 1), mean_c, std_c)
-    pred = model(x_hat)
-
-    soft_y = torch.softmax(dummy_y, dim=-1)
-    loss = soft_ce(pred, soft_y)
-
-    # g_dummy = ∂loss/∂θ
-    g_tuple = torch.autograd.grad(loss, model.parameters(), create_graph=True)
-
-    # J = Σ ||g_dummy - g_client||²
-    J = 0.0
-    for (name, _), g in zip(model.named_parameters(), g_tuple):
-        J += (g - g_client[name]).pow(2).mean()
-
-    J.backward()
-    return J
-
-optimizer.step(closure)
 
 
 ## Expected Output
