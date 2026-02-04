@@ -12,7 +12,7 @@ def parse_args():
     parser.add_argument("--lr", type=float, default=1)
 
     # Dataset setting
-    parser.add_argument("--data-set", type=str, default="cifar10", choices=["cifar10", "mnist"])
+    parser.add_argument("--data-set", type=str, default="mnist, choices=["cifar10", "mnist"])
     parser.add_argument("--data-root", type=str, default="./data")
 
     # Client, Batch, Local Epochs, Communicate rounds setting
