@@ -5,6 +5,7 @@ Given a client’s shared gradients (typically **batch size = 1**), this code re
 
 > ⚠️ This repo is for **research/educational** purposes only.
 
+---
 
 ## Overview
 
@@ -15,6 +16,7 @@ DLG assumes an attacker (e.g., server) can access:
 The attacker then optimizes dummy variables `(x', y')` such that:
 `∇θ L(fθ(x'), y') ≈ ∇θ L(fθ(x), y)`.
 
+---
 
 ## Threat Model (Assumptions)
 
@@ -22,6 +24,7 @@ The attacker then optimizes dummy variables `(x', y')` such that:
 - The attacker can observe the **client gradients** from **one mini-batch** (default: **batch size = 1**).
 - The attacker does **not** have access to the client’s raw data or labels.
 
+---
 
 ## Method (DLG)
 
@@ -31,6 +34,8 @@ We optimize:
 
 by minimizing the gradient matching objective:
 `J = Σ ||g_dummy - g_client||²`.
+
+---
 
 ## Normalization (Mean / Std)
 
@@ -52,17 +57,19 @@ Code reference:
 - `attack/generator.py`: applies `TF.normalize(dummy_x, mean, std)` before feeding into the model
 - `utils/plotting.py`: denormalizes the original input for visualization
 
+---
+
 ## Implementation Details (Math ↔ Code)
 
 DLG reconstructs `(x, y)` by solving a **gradient matching** problem.
 
 ### Goal (gradient matching)
 
-\[
+$$\[
 \min_{x', y'} \; J(x', y') = \sum_l \left\| g_l(x', y') - g_l^{client} \right\|_2^2,
 \quad
 g_l(x', y') = \frac{\partial L(f_\theta(x'), y')}{\partial \theta_l}
-\]
+\]$$
 
 **Intuition:** we update `dummy_x` (and `dummy_y`) to **minimize the gradient difference** between the client’s gradient and the dummy gradient.  
 In other words, `dummy_x` is optimized using **J**, the discrepancy between `g_dummy` and `g_client`, so that the dummy sample produces gradients indistinguishable from the client’s.
@@ -163,6 +170,8 @@ python main.py --data-set cifar10 --attack-iter 500
 python main.py --data-set mnist --attack-iter 100 --grad-amp 1e4 --batch-size 8
 ```
 
+---
+
 ## Device Selection
 
 The code supports:
@@ -177,6 +186,8 @@ Example:
 ```bash
 python main.py --device auto
 ```
+
+---
 
 ## CLI Arguments
 
@@ -209,6 +220,7 @@ Key arguments (from utils/parser.py):
 		•	--print-labels / --no-print-labels
 ```
 
+---
 
 ## Expected Output
 
