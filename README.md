@@ -216,7 +216,7 @@ Key arguments (from utils/parser.py):
 ## Expected Output
 
 ### With default setting
-<img width="1392" height="762" alt="스크린샷 2026-02-04 오전 10 56 04" src="https://github.com/user-attachments/assets/4c5d55eb-07b2-4a3e-9cd8-85aeb86a016f" />
+<img width="1200" height="400" alt="스크린샷 2026-02-04 오전 10 56 04" src="https://github.com/user-attachments/assets/4c5d55eb-07b2-4a3e-9cd8-85aeb86a016f" />
 
 
 ### With python main.py --data-set mnist --batch-size 8
