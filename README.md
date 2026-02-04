@@ -5,7 +5,6 @@ Given a client’s shared gradients (typically **batch size = 1**), this code re
 
 > ⚠️ This repo is for **research/educational** purposes only.
 
----
 
 ## Overview
 
@@ -16,7 +15,6 @@ DLG assumes an attacker (e.g., server) can access:
 The attacker then optimizes dummy variables `(x', y')` such that:
 `∇θ L(fθ(x'), y') ≈ ∇θ L(fθ(x), y)`.
 
----
 
 ## Threat Model (Assumptions)
 
@@ -24,7 +22,6 @@ The attacker then optimizes dummy variables `(x', y')` such that:
 - The attacker can observe the **client gradients** from **one mini-batch** (default: **batch size = 1**).
 - The attacker does **not** have access to the client’s raw data or labels.
 
----
 
 ## Method (DLG)
 
@@ -35,7 +32,6 @@ We optimize:
 by minimizing the gradient matching objective:
 `J = Σ ||g_dummy - g_client||²`.
 
----
 
 ## Normalization (Mean / Std)
 
@@ -57,7 +53,6 @@ Code reference:
 - `attack/generator.py`: applies `TF.normalize(dummy_x, mean, std)` before feeding into the model
 - `utils/plotting.py`: denormalizes the original input for visualization
 
----
 
 ## Implementation Details (Math ↔ Code)
 
@@ -85,6 +80,8 @@ In other words, `dummy_x` is optimized using **J**, the discrepancy between `g_d
   - `dummy_y → softmax(dummy_y)` yields differentiable soft labels  
   - `TF.normalize(dummy_x, mean, std)` matches the client-side preprocessing  
   - `J = Σ ||g_dummy - g_client||²` is computed and backpropagated to update `dummy_x, dummy_y`
+ 
+
 Key code (simplified):
 
 ```python
@@ -149,7 +146,6 @@ So the easiest way to run without changing code is to organize files like this:
     └── seed.py
 ```
 
----
 
 ## Requirements
 
@@ -168,7 +164,6 @@ python main.py --data-set cifar10 --attack-iter 500
 python main.py --data-set mnist --attack-iter 100 --grad-amp 1e4 --batch-size 8
 ```
 
----
 
 ## Device Selection
 
@@ -185,7 +180,6 @@ Example:
 python main.py --device auto
 ```
 
----
 
 ## CLI Arguments
 
@@ -218,7 +212,6 @@ Key arguments (from utils/parser.py):
 		•	--print-labels / --no-print-labels
 ```
 
----
 
 ## Expected Output
 
