@@ -215,7 +215,29 @@ Key arguments (from utils/parser.py):
 
 ## Expected Output
 
-(*wit
+### With default setting
+<img width="1392" height="762" alt="스크린샷 2026-02-04 오전 10 56 04" src="https://github.com/user-attachments/assets/4c5d55eb-07b2-4a3e-9cd8-85aeb86a016f" />
 
+
+### With python main.py --data-set mnist --batch-size 8
+<img width="812" height="794" alt="스크린샷 2026-02-04 오전 10 58 04" src="https://github.com/user-attachments/assets/2f58999a-6d7a-4987-8ffd-559700c8e796" />
+
+
+### With python main.py --data-set cifar10
+<img width="1376" height="756" alt="스크린샷 2026-02-04 오전 11 00 00" src="https://github.com/user-attachments/assets/e9b46cfd-dbad-4e17-b2c4-133c974b1b43" />
+
+
+### With python main.py --data-set cifar10 --grad-amp 1e6
+<img width="1390" height="757" alt="스크린샷 2026-02-04 오전 11 01 23" src="https://github.com/user-attachments/assets/bb267a3a-7639-40ff-8082-bb26ad47a9fb" />
+
+
+### With python main.py --data-set cifar10 --batch-size 2 --grad-amp 1e6
+<img width="1013" height="786" alt="스크린샷 2026-02-04 오전 11 02 40" src="https://github.com/user-attachments/assets/363248fe-12f9-4deb-94bb-f7af84db635a" />
+
+
+## Limitation / Note
+
+In our experiments, reconstruction was not reliable with MobileNet or ResNet.
+We also tried the paper’s differentiability-friendly modifications for ResNet (e.g., stride = 1 and ReLU → Sigmoid), but reconstruction quality remained poor.
 
 
