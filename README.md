@@ -125,7 +125,7 @@ So the easiest way to run without changing code is to organize files like this:
 ├── attack/
 │   ├── __init__.py
 │   ├── generator.py
-│   └──  noise.py
+│   └── noise.py
 ├── data/
 │   ├── __init__.py
 │   ├── cifar10.py
