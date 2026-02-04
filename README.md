@@ -236,6 +236,6 @@ Key arguments (from utils/parser.py):
 ## Limitation / Note
 
 In our experiments, reconstruction was not reliable with MobileNet or ResNet.
-We also tried the paper’s differentiability-friendly modifications for ResNet (e.g., stride = 1 and ReLU → Sigmoid), but reconstruction quality remained poor.
+I also tried the paper’s differentiability-friendly modifications for ResNet (e.g., stride = 1 and ReLU → Sigmoid), but reconstruction quality remained poor.
 
 
