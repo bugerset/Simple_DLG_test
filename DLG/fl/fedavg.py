@@ -18,7 +18,7 @@ def fedavg(global_model, client_dataset, batch_size=1, lr=1e-3, device="cpu"):
         loss = criterion(pred, y)
         loss.backward()
 
-        # Leakage of Gradient
+        # Leakage From Gradient
         grads = {}
         for name, p in local_model.named_parameters():
             if p.grad is not None:
