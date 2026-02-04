@@ -30,7 +30,7 @@ We optimize:
 - `dummy_y` (label logits -> softmax)
 
 by minimizing the gradient matching objective:
-`Gradient_Distance = Σ ||g_dummy - g_client||²`.
+`J = Σ ||g_dummy - g_client||²`.
 
 ## Normalization (Mean / Std)
 
@@ -58,7 +58,7 @@ DLG reconstructs `(x, y)` by solving a gradient matching problem:
 
 Goal (gradient matching):
 
-$$min_{x’, y’}  J(x’, y’) = Σ_l || g_l(x’, y’) - g_l^{client} ||_2^2 where  g_l(x’, y’) = ∂L(f_θ(x’), y’) / ∂θ_l$$
+$$min_{x’, y’}  J(x’, y’) = Σ_l || g_l(x’, y’) - g_l^{client} ||_2^2  where  g_l(x’, y’) = ∂L(f_θ(x’), y’) / ∂θ_l$$
 
 In this repo, the mapping is:
 
