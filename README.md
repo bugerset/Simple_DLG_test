@@ -66,7 +66,7 @@ DLG reconstructs `(x, y)` by solving a **gradient matching** problem.
 ### Goal (gradient matching)
 
 $$\
-\min_{x',y'} \;\; \big\|\nabla_{\theta} L(f_{\theta}(x'),y') - g_{\text{client}}\big\|_2^2
+\min_{x',y'} \big\|\nabla_{\theta} L(f_{\theta}(x'),y') - g_{\text{client}}\big\|_2^2
 \$$
 
 **Intuition:** we update `dummy_x` (and `dummy_y`) to **minimize the gradient difference** between the client’s gradient and the dummy gradient.  
