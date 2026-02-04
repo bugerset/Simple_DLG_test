@@ -6,10 +6,12 @@ def parse_args():
     # seed, device, train function setting
     parser.add_argument("--seed", type=int, default=845)
     parser.add_argument("--device", type=str, default="auto", choices=["auto", "cpu", "cuda", "mps"])
+
+    # Training parameter
     parser.add_argument("--grad-amp", type=float, default=1e2)
     parser.add_argument("--lr", type=float, default=1)
 
-    # dataset setting
+    # Dataset setting
     parser.add_argument("--data-set", type=str, default="cifar10", choices=["cifar10", "mnist"])
     parser.add_argument("--data-root", type=str, default="./data")
 
