@@ -1,26 +1,52 @@
 # Simple_DLG_test (PyTorch)
 
-This repository provides a PyTorch implementation of (Simple) Deep Leakage From Gradient
-# FedDyn on CIFAR-10 and MNIST with MobileNet (PyTorch)
+A minimal PyTorch implementation of **Deep Leakage from Gradients (DLG)** on **MNIST** and **CIFAR-10**.
+Given a client’s shared gradients (typically **batch size = 1**), this code reconstructs the input image and label by **gradient matching**.
 
-This repository provides a PyTorch implementation of FedDyn (Federated Learning based on Dynamic Regularization) using MobileNet on CIFAR-10 and MNIST datasets. 
-It is designed to handle Non-IID data distributions effectively by introducing dynamic regularization to mitigate client drift.
+> ⚠️ This repo is for **research/educational** purposes only.
 
-## Project Overview 
-FedDyn optimizes the global objective by dynamically updating a regularizer for each client. This simulation covers:
+---
 
-Data Partitioning: IID and Non-IID (Dirichlet distribution) splits.
+## Overview
 
-State Management: Handling server state **$h$** and client states **$g_k​ , θ_k$** for dynamic regularization.
+DLG assumes an attacker (e.g., server) can access:
+- the **global model parameters** used by the client, and
+- the **client gradients** computed from a **single(or more) mini-batch** (batch size = 1 works best).
 
-Optimized Aggregation: Server-side update logic that specifically excludes BatchNorm parameters from FedDyn regularization to maintain stability.
+The attacker then optimizes dummy variables `(x', y')` such that:
+`∇θ L(fθ(x'), y') ≈ ∇θ L(fθ(x), y)`.
+
+---
+
+## Threat Model (Assumptions)
+
+- The attacker has access to the **global model architecture and weights** at the round of interest.
+- The attacker can observe the **client gradients** from **one mini-batch** (default: **batch size = 1**).
+- The attacker does **not** have access to the client’s raw data or labels.
+
+---
+
+## Method (DLG)
+
+We optimize:
+- `dummy_x` (image in pixel space, clamped to [0,1])
+- `dummy_y` (label logits -> softmax)
+
+by minimizing the gradient matching objective:
+`Gradient_Distance = Σ ||g_dummy - g_client||²`.
+
+---
 
 ## Recommended Folder Structure
 
-Your `main.py` imports modules like `data.cifar10`, `fl.client`, etc.  
+Your `main.py` imports modules like `data.cifar10`, `fl.fedavg`, etc.  
 So the easiest way to run without changing code is to organize files like this:
 ```
 ├── main.py
+├── attack/
+│   ├── __init__.py
+│   ├── generator.py
+│   └──  noise.py
 ├── data/
 │   ├── __init__.py
 │   ├── cifar10.py
@@ -28,18 +54,20 @@ So the easiest way to run without changing code is to organize files like this:
 │   └── partition.py
 ├── fl/
 │   ├── __init__.py
-│   ├── feddyn.py
-│   └── server.py
+│   └── fedavg.py
 ├── models/
 │   ├── __init__.py
-│   └── mobilenet.py
+│   └── simplenet.py
 └── utils/
  	├── __init__.py
+	├── plotting.py
  	├── device.py
     ├── eval.py
     ├── parser.py
     └── seed.py
 ```
+
+---
 
 ## Requirements
 
@@ -51,17 +79,11 @@ Run with default settings:
 ```bash
 python main.py
 ```
-Example1: Non-IID
+Examples: 
 ```bash
-python main.py --partition niid
-```
-Example2: Non-IID with control dyn-alpha
-```bash
-python main.py --partition niid --alpha 0.5 --min-size 10
-```
-Example3: Change the number and ratio of participating clients + local epoch
-```bash
-python main.py --num-clients 100 --client-frac 0.2 --local-epochs 5
+python main.py --data-set mnist --attack-iter 200
+python main.py --data-set cifar10 --attack-iter 500
+python main.py --data-set mnist --attack-iter 100 --grad-amp 1e4 --batch-size 8
 ```
 
 ## Device Selection
