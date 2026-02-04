@@ -3,8 +3,6 @@
 A minimal PyTorch implementation of **Deep Leakage from Gradients (DLG)** on **MNIST** and **CIFAR-10**.
 Given a client’s shared gradients (typically **batch size = 1**), this code reconstructs the input image and label by **gradient matching**.
 
-> ⚠️ This repo is for **research/educational** purposes only.
-
 
 ## Overview
 
