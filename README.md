@@ -105,7 +105,7 @@ Key arguments (from utils/parser.py):
 		•	--seed (default: 845)
 		•	--device in {auto,cpu,cuda,mps}
 
-	•	Train parameter
+	•	Training parameter
 		•	--dyn-alpha (FedDyn alpha, default 0.1)
 
 	•	Dataset
